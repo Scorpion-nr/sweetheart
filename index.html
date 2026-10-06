@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM_OVERRIDE_HBD</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #00ff66;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 90vh;
+        }
+        .terminal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 255, 102, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .line { margin-bottom: 8px; font-size: 0.9em; }
+        .success { color: #58a6ff; }
+        .heart { color: #ff7b72; font-size: 1.5em; text-align: center; margin-top: 15px; }
+        .final-msg {
+            display: none;
+            border-top: 1px dashed #30363d;
+            margin-top: 15px;
+            padding-top: 15px;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div id="logs"></div>
+    
+    <div id="final" class="final-msg">
+        <div class="heart">❤️ 生日快乐 ❤️</div>
+        <p><strong>Joyeux Anniversaire my sweetheart ! 🎂✨</strong></p>
+        <p>Peu importe la distance, la latence ou les routeurs entre nous, mon cœur est connecté directement au tien sans aucun packet loss.</p>
+        <p>Passe la plus belle des journées en Chine. Je t'aime tellement ! 💕</p>
+    </div>
+</div>
+
+<script>
+    const logs = [
+        "[SYSTEM] CONNECTING TO CHINA_NODE_SECURE...",
+        "[NET] Bypassing CGNAT & Firewall layers... [OK]",
+        "[AUTH] Encrypted handshake verified...",
+        "[TARGET FOUND] The most special person in China.",
+        "[STATUS] Emotional bandwidth at 100%."
+    ];
+
+    let i = 0;
+    function typeLog() {
+        if (i < logs.length) {
+            let div = document.createElement("div");
+            div.className = "line success";
+            div.innerText = logs[i];
+            document.getElementById("logs").appendChild(div);
+            i++;
+            setTimeout(typeLog, 600);
+        } else {
+            setTimeout(() => {
+                document.getElementById("final").style.display = "block";
+            }, 500);
+        }
+    }
+    typeLog();
+</script>
+
+</body>
+</html>
