@@ -1,13 +1,14 @@
+cat << 'EOF' > index.html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLOBAL_TARGET_LOCK</title>
+    <title>SATELLITE_TARGET_LOCK</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background-color: #020602;
+            background-color: #020502;
             color: #00ff66;
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
@@ -16,17 +17,17 @@
             align-items: center;
             justify-content: center;
         }
-        canvas {
+        canvas#matrix {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 1;
-            opacity: 0.35;
+            opacity: 0.25;
         }
         .terminal {
             position: relative;
             z-index: 2;
-            background: rgba(4, 10, 4, 0.94);
+            background: rgba(3, 10, 3, 0.95);
             border: 2px solid #00ff66;
             box-shadow: 0 0 40px rgba(0, 255, 102, 0.4);
             border-radius: 12px;
@@ -44,15 +45,16 @@
             border-bottom: 1px solid #ff3333;
             padding-bottom: 6px;
             text-shadow: 0 0 10px #ff3333;
-            animation: pulse 1s infinite alternate;
+            animation: pulse 0.8s infinite alternate;
         }
-        @keyframes pulse { 0% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        .map-container {
+        /* Globe 3D Canvas Box */
+        .globe-box {
             width: 100%;
-            height: 220px;
+            height: 250px;
             position: relative;
-            background: rgba(0, 20, 0, 0.5);
+            background: radial-gradient(circle, rgba(0,30,10,0.6) 0%, rgba(0,5,0,0.9) 100%);
             border: 1px solid #00ff66;
             border-radius: 8px;
             margin: 10px 0;
@@ -61,25 +63,22 @@
             align-items: center;
             justify-content: center;
         }
-        svg { width: 100%; height: 100%; }
+        #globeCanvas {
+            width: 100%;
+            height: 100%;
+        }
         
-        .laser-line {
-            stroke: #00ff66;
-            stroke-width: 3;
-            fill: none;
-            stroke-dasharray: 400;
-            stroke-dashoffset: 400;
-            animation: traceLaser 2.5s ease-in-out forwards;
-            filter: drop-shadow(0 0 8px #00ff66);
-        }
-        @keyframes traceLaser { to { stroke-dashoffset: 0; } }
-
-        .pulse-node { animation: nodePing 1.2s infinite; }
-        @keyframes nodePing {
-            0% { r: 4; opacity: 1; }
-            100% { r: 15; opacity: 0; }
+        .hud-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 0.75em;
+            color: #00ff66;
+            pointer-events: none;
+            text-shadow: 0 0 4px #00ff66;
         }
 
+        /* Target Profile Box */
         .target-box {
             display: none;
             flex-direction: column;
@@ -91,19 +90,19 @@
             border-radius: 8px;
             animation: fadeIn 0.8s ease-in;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
 
         .target-photo {
-            width: 150px;
-            height: 150px;
+            width: 160px;
+            height: 160px;
             border-radius: 50%;
             border: 3px solid #00ff66;
             box-shadow: 0 0 25px #00ff66;
             object-fit: cover;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
         .target-info { text-align: center; color: #fff; font-size: 0.9em; line-height: 1.4; }
-        .target-name { color: #00ff66; font-size: 1.2em; font-weight: bold; text-shadow: 0 0 8px #00ff66; }
+        .target-name { color: #00ff66; font-size: 1.3em; font-weight: bold; text-shadow: 0 0 8px #00ff66; }
 
         .warning-msg {
             display: none;
@@ -115,8 +114,8 @@
             font-weight: bold;
         }
 
-        .line { margin-bottom: 6px; font-size: 0.85em; text-shadow: 0 0 5px #00ff66; }
-        .heart { color: #ff3366; font-size: 2em; text-align: center; margin: 10px 0; text-shadow: 0 0 15px #ff3366; }
+        .line { margin-bottom: 4px; font-size: 0.85em; text-shadow: 0 0 5px #00ff66; }
+        .heart { color: #ff3366; font-size: 2.2em; text-align: center; margin: 10px 0; text-shadow: 0 0 15px #ff3366; }
         .final-msg {
             display: none;
             border-top: 2px solid #00ff66;
@@ -132,72 +131,69 @@
 <canvas id="matrix"></canvas>
 
 <div class="terminal">
-    <div class="header-alert" id="alertHeader">⚠️ [INTERCEPT] GLOBAL SATELLITE TRACE INITIATED ⚠️</div>
+    <div class="header-alert" id="alertHeader">⚠️ [ORBITAL SCAN] SATELLITE LOCK-ON SEQUENCE ⚠️</div>
     
     <div id="logs"></div>
 
-    <div class="map-container" id="mapContainer">
-        <svg viewBox="0 0 800 400">
-            <path d="M150,120 Q200,80 300,100 T500,120 T700,150" fill="none" stroke="#004411" stroke-width="1" stroke-dasharray="4"/>
-            <path d="M100,200 Q250,220 400,200 T650,250" fill="none" stroke="#004411" stroke-width="1" stroke-dasharray="4"/>
-            
-            <circle cx="410" cy="230" r="5" fill="#ff3333"/>
-            <circle cx="410" cy="230" r="10" fill="none" stroke="#ff3333" class="pulse-node"/>
-            <text x="350" y="250" fill="#ff3333" font-size="12" font-weight="bold">CAMEROON [ORIGIN]</text>
-
-            <circle cx="620" cy="160" r="5" fill="#00ff66"/>
-            <circle cx="620" cy="160" r="12" fill="none" stroke="#00ff66" class="pulse-node"/>
-            <text x="630" y="155" fill="#00ff66" font-size="12" font-weight="bold">CHINA [TARGET]</text>
-
-            <path d="M410,230 Q515,80 620,160" class="laser-line"/>
-        </svg>
+    <!-- Globe 3D Container -->
+    <div class="globe-box" id="globeContainer">
+        <div class="hud-overlay">
+            SYS: SAT-ORBIT-9<br>
+            MODE: 3D RECONNAISSANCE<br>
+            TARGET_LAT: 35.8617° N<br>
+            TARGET_LONG: 104.1954° E
+        </div>
+        <canvas id="globeCanvas"></canvas>
     </div>
 
+    <!-- Target Profile Box -->
     <div class="target-box" id="targetBox">
-        <img src="WhatsApp Image 2026-05-06 à 13.09.25.jpeg" alt="Target" class="target-photo">
+        <img src="/home/scorpion/My-bby/WhatsApp Image 2026-05-06 at 13.09.25.jpeg" alt="Target Profile" class="target-photo">
         <div class="target-info">
-            <div style="color: #ff3333; font-weight: bold; font-size: 0.8em;">[IDENTITY VERIFIED]</div>
+            <div style="color: #ff3333; font-weight: bold; font-size: 0.85em;">[FACIAL MATCH DETECTED]</div>
             <div class="target-name">MY SWEETHEART</div>
-            <div>COORDINATES: China Node</div>
-            <div>STATUS: Target Locked</div>
+            <div>LOCATION: China / Asia Orbital Node</div>
+            <div>STATUS: Target Locked (100% Signal)</div>
         </div>
     </div>
 
     <div class="warning-msg" id="warningMsg">
-        🚨 ALERTE : Connexion satellite interceptée par le terminal Cameroun !<br>
-        Redirection forcée de votre téléphone en cours...
+        🚨 ALERTE : Connexion satellite interceptée depuis Douala !<br>
+        Verrouillage sécurisé sur le terminal cible...
     </div>
 
     <div id="final" class="final-msg">
         <div class="heart">❤️ 生日快乐 ❤️</div>
-        <p style="text-align: center; font-size: 1.1em; color: #00ff66; margin-bottom: 8px;"><strong>Joyeux Anniversaire mon amour ! 🎂✨</strong></p>
-        <p>Tu as vu ce traçage satellite ? 😂 Tu ne peux pas m'échapper !</p>
-        <p>Peu importe les kilomètres entre le Cameroun et la Chine, la ligne est directe et mon cœur est verrouillé sur toi.</p>
-        <p>Passe une journée magnifique mon bébé. Je t'aime à l'infini ! 💕</p>
+        <p style="text-align: center; font-size: 1.15em; color: #00ff66; margin-bottom: 8px;"><strong>Joyeux Anniversaire My 
+             🎂✨</strong></p>
+        <p>Tu as vu ce ciblage satellite en 3D ? 😂 Tu ne peux pas m'échapper !</p>
+        <p>Peu importe la distance entre le Cameroun et la Chine, la connexion est directe et mon cœur reste verrouillé sur toi.</p>
+        <p>Passe une journée magnifique My sweetheart. Je t'aime à l'infini ! 💕</p>
     </div>
 </div>
 
 <script>
-    const canvas = document.getElementById('matrix');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Matrix Rain
+    const matrixCanvas = document.getElementById('matrix');
+    const mCtx = matrixCanvas.getContext('2d');
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
 
     const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ日生快乐爱0123456789@#$%&*';
     const fontSize = 14;
-    const columns = canvas.width / fontSize;
+    const columns = matrixCanvas.width / fontSize;
     const drops = Array(Math.floor(columns)).fill(1);
 
     function drawMatrix() {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#00ff66';
-        ctx.font = fontSize + 'px monospace';
+        mCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        mCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+        mCtx.fillStyle = '#00ff66';
+        mCtx.font = fontSize + 'px monospace';
 
         for (let i = 0; i < drops.length; i++) {
             const text = chars.charAt(Math.floor(Math.random() * chars.length));
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+            mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
                 drops[i] = 0;
             }
             drops[i]++;
@@ -205,10 +201,127 @@
     }
     setInterval(drawMatrix, 33);
 
+    // 3D Globe Animation
+    const gCanvas = document.getElementById('globeCanvas');
+    const gCtx = gCanvas.getContext('2d');
+    
+    function resizeGlobe() {
+        gCanvas.width = gCanvas.offsetWidth;
+        gCanvas.height = gCanvas.offsetHeight;
+    }
+    resizeGlobe();
+
+    let rotationY = 0;
+    let zoomLevel = 1;
+    let lockingOn = false;
+
+    // Cameroon approx coords on 3D sphere: lat 4, lon 11
+    // China approx coords: lat 35, lon 104
+    function latLongTo3D(lat, lon, radius) {
+        let phi = (90 - lat) * (Math.PI / 180);
+        let theta = (lon + 180) * (Math.PI / 180);
+        let x = -(radius * Math.sin(phi) * Math.cos(theta));
+        let z = (radius * Math.sin(phi) * Math.sin(theta));
+        let y = (radius * Math.cos(phi));
+        return {x, y, z};
+    }
+
+    function draw3DGlobe() {
+        gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+        
+        let cx = gCanvas.width / 2;
+        let cy = gCanvas.height / 2;
+        let baseRadius = Math.min(gCanvas.width, gCanvas.height) * 0.35 * zoomLevel;
+
+        // Draw Wireframe Latitude / Longitude lines
+        gCtx.strokeStyle = 'rgba(0, 255, 102, 0.25)';
+        gCtx.lineWidth = 1;
+
+        // Latitudes
+        for (let lat = -60; lat <= 60; lat += 30) {
+            gCtx.beginPath();
+            for (let lon = 0; lon <= 360; lon += 10) {
+                let p = latLongTo3D(lat, lon + rotationY, baseRadius);
+                if (p.z > 0) {
+                    let px = cx + p.x;
+                    let py = cy - p.y;
+                    if (lon === 0) gCtx.moveTo(px, py);
+                    else gCtx.lineTo(px, py);
+                }
+            }
+            gCtx.stroke();
+        }
+
+        // Longitudes
+        for (let lon = 0; lon < 360; lon += 30) {
+            gCtx.beginPath();
+            for (let lat = -90; lat <= 90; lat += 10) {
+                let p = latLongTo3D(lat, lon + rotationY, baseRadius);
+                if (p.z > 0) {
+                    let px = cx + p.x;
+                    let py = cy - p.y;
+                    if (lat === -90) gCtx.moveTo(px, py);
+                    else gCtx.lineTo(px, py);
+                }
+            }
+            gCtx.stroke();
+        }
+
+        // Draw Nodes
+        let cameroon = latLongTo3D(4, 11 + rotationY, baseRadius);
+        let china = latLongTo3D(35, 104 + rotationY, baseRadius);
+
+        // Cameroon Node (Red)
+        if (cameroon.z > -10) {
+            let px = cx + cameroon.x;
+            let py = cy - cameroon.y;
+            gCtx.fillStyle = '#ff3333';
+            gCtx.beginPath(); gCtx.arc(px, py, 5, 0, Math.PI * 2); gCtx.fill();
+            gCtx.fillStyle = '#ff3333';
+            gCtx.font = '10px monospace';
+            gCtx.fillText("CAMEROON", px + 8, py + 3);
+        }
+
+        // China Node (Bright Green / Target)
+        if (china.z > -10) {
+            let px = cx + china.x;
+            let py = cy - china.y;
+            gCtx.fillStyle = '#00ff66';
+            gCtx.beginPath(); gCtx.arc(px, py, 6, 0, Math.PI * 2); gCtx.fill();
+            
+            // Target Crosshair
+            gCtx.strokeStyle = '#00ff66';
+            gCtx.lineWidth = 1.5;
+            gCtx.beginPath(); gCtx.arc(px, py, 14, 0, Math.PI * 2); gCtx.stroke();
+            gCtx.beginPath();
+            gCtx.moveTo(px - 20, py); gCtx.lineTo(px + 20, py);
+            gCtx.moveTo(px, py - 20); gCtx.lineTo(px, py + 20);
+            gCtx.stroke();
+
+            gCtx.fillStyle = '#00ff66';
+            gCtx.font = 'bold 11px monospace';
+            gCtx.fillText("TARGET: CHINA", px + 18, py + 4);
+        }
+
+        // Rotation logic
+        if (!lockingOn) {
+            rotationY += 1.2;
+        } else {
+            // Smoothly align rotation to China
+            let targetRot = -104 + 90; 
+            rotationY += (targetRot - rotationY) * 0.05;
+            if (zoomLevel < 1.8) zoomLevel += 0.02;
+        }
+
+        requestAnimationFrame(draw3DGlobe);
+    }
+    draw3DGlobe();
+
+    // Terminal Logs Sequence
     const logs = [
-        "[SATELLITE] Uplink connected: SAT_CAM_01 -> SAT_CHN_08",
-        "[TRACE] Tracking signal from Cameroon...",
-        "[ROUTE] Packet routing across Asia fiber links... [OK]"
+        "[SYSTEM] Activating Satellite Reconnaissance Network...",
+        "[3D-GLOBE] Scanning global coordinates...",
+        "[LOCK-ON] Aligning satellite vector to Asia / China region..."
     ];
 
     let lineIdx = 0;
@@ -221,24 +334,32 @@
             div.innerText = logs[lineIdx];
             logsContainer.appendChild(div);
             lineIdx++;
-            setTimeout(typeLine, 800);
+            setTimeout(typeLine, 1000);
         } else {
+            // Trigger 3D Zoom to China
             setTimeout(() => {
-                document.getElementById("mapContainer").style.display = "none";
-                document.getElementById("targetBox").style.display = "flex";
-            }, 3000);
+                lockingOn = true;
+            }, 500);
 
+            // Hide Globe & Show Target Photo
+            setTimeout(() => {
+                document.getElementById("globeContainer").style.display = "none";
+                document.getElementById("targetBox").style.display = "flex";
+            }, 4000);
+
+            // Show Warning
             setTimeout(() => {
                 document.getElementById("warningMsg").style.display = "block";
-            }, 4200);
+            }, 5200);
 
+            // Reveal Love Message
             setTimeout(() => {
-                document.getElementById("alertHeader").innerText = "💚 [ENCRYPTED LOVE TUNNEL ESTABLISHED] 💚";
+                document.getElementById("alertHeader").innerText = "💚 [SECURE LOVE CONNECTION ESTABLISHED] 💚";
                 document.getElementById("alertHeader").style.color = "#00ff66";
                 document.getElementById("alertHeader").style.borderBottomColor = "#00ff66";
                 document.getElementById("warningMsg").style.display = "none";
                 document.getElementById("final").style.display = "block";
-            }, 7500);
+            }, 8500);
         }
     }
     typeLine();
